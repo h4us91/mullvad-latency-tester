@@ -135,12 +135,15 @@ def run_mulping():
         server_latencies = {}
 
         output_text.insert(tk.END, f"Starting {num_pings} ping iterations for each server...\n")
+        output_text.see(tk.END)  # Auto-scroll
+        output_text.update_idletasks()  # Ensure UI updates
 
         # Run ping for each server and gather latencies
         for relay in selected_relays:
             hostname = relay.get("hostname", "Unknown")
             ipv4_addr = relay.get("ipv4_addr_in", "N/A")
             output_text.insert(tk.END, f"\nPinging {hostname} ({ipv4_addr})...\n")
+            output_text.see(tk.END)  # Auto-scroll
             output_text.update_idletasks()  # Ensure UI updates
 
             _, avg_latency, _ = ping(ipv4_addr, count=num_pings, timeout=timeout)
@@ -151,6 +154,8 @@ def run_mulping():
                 server_latencies[hostname] = avg_latency
             else:
                 output_text.insert(tk.END, f"Ping {hostname}: No response\n")
+            output_text.see(tk.END)  # Auto-scroll
+            output_text.update_idletasks()  # Ensure UI updates
 
         stop_animation.set()
 
@@ -160,16 +165,17 @@ def run_mulping():
             average_latency = server_latencies[best_server]
 
             # Format and display the final message
-            final_message = "\n" + "#" * 60 + "\n"
-            final_message += "#{:^58}#\n".format("Best Server Based on Average Latency")
-            final_message += "#{:^58}#\n".format(f"Server: {best_server}")
-            final_message += "#{:^58}#\n".format(f"Average Latency: {average_latency:.3f} ms")
-            final_message += "#" * 60 + "\n"
+            final_message = "\n" + "#" * 40 + "\n"
+            final_message += "#{:^38}#\n".format("Best Server Based on Average Latency")
+            final_message += "#{:^38}#\n".format(f"Server: {best_server}")
+            final_message += "#{:^38}#\n".format(f"Average Latency: {average_latency:.3f} ms")
+            final_message += "#" * 40 + "\n"
             final_message += "\nDONE!\n"
             output_text.insert(tk.END, final_message)
-            output_text.see(tk.END)
+            output_text.see(tk.END)  # Auto-scroll
         else:
             output_text.insert(tk.END, "\nNo server latency information found.\n")
+            output_text.see(tk.END)  # Auto-scroll
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
