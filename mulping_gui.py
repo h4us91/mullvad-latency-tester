@@ -31,18 +31,20 @@ def load_dynamic_relays():
 
 # Function to update city dropdown based on the selected country
 def update_city_dropdown(event):
-    selected_country_name = country_var.get() 
-    if selected_country_name in cities_by_country:
+    selected_country_name = country_var.get()
+    if selected_country_name != "Please select":
+        city_dropdown['state'] = 'readonly'  # Enable city dropdown
         cities = cities_by_country[selected_country_name]
         city_dropdown.config(values=cities)
         city_var.set('')  # Reset city when country is changed
+    else:
+        city_dropdown['state'] = 'disabled'  # Disable city dropdown if no country is selected
 
 # Function to execute the script as a separate thread
 def run_mulping_thread():
     stop_animation.clear()
     output_text.delete("1.0", tk.END)
-    loading_label.grid(row=8, column=0, columnspan=2, pady=5)
-    threading.Thread(target=loading_animation).start()
+    output_text.insert(tk.END, "Starting ping operations...\n")  # Display message in the console
     threading.Thread(target=run_mulping).start()
 
 # Function to update coordinates and relays data
@@ -94,17 +96,15 @@ def find_closest_servers():
 
     threading.Thread(target=display_closest_servers).start()
 
-# Function to execute the script and display the best server based on average latency
 def run_mulping():
     try:
         country_name = country_var.get()
         city_name = city_var.get()
-        wireguard = wireguard_var.get()  # Get the state of the WireGuard checkbox
-        openvpn = openvpn_var.get()  # Get the state of the OpenVPN checkbox
-        num_pings = num_pings_entry.get()
-        timeout = timeout_entry.get()
+        server_type = server_type_var.get()  # Get the selected server type
+        num_pings = int(num_pings_entry.get())  # Ensure num_pings is an integer
+        timeout = int(timeout_entry.get())  # Ensure timeout is an integer
 
-        if not country_name or not city_name:
+        if not country_name or country_name == "Please select" or not city_name:
             messagebox.showerror("Error", "Please select a country and a city.")
             stop_animation.set()
             return
@@ -117,40 +117,64 @@ def run_mulping():
             stop_animation.set()
             return
 
-        command = f'python mulping.py --country {country_code} --city {city_code} --num-pings {num_pings} --timeout {timeout} '
-        if wireguard:
-            command += "--wireguard "
-        if openvpn:
-            command += "--openvpn "
+        # Filter relays by selected country and city
+        selected_relays = [relay for relay in relays if relay[COUNTRY_CODE] == country_code and relay[CITY_CODE] == city_code]
 
-        # Execute the command and capture the output
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        # Read and display the output line by line
-        for line in iter(process.stdout.readline, ''):
-            output_text.insert(tk.END, line)
-            output_text.see(tk.END)  # Auto-scroll
-            output_text.update_idletasks()  # UI update
-        process.stdout.close()
+        # Filter relays further by server type (WireGuard or OpenVPN)
+        if server_type == "WireGuard":
+            selected_relays = [relay for relay in selected_relays if relay.get("type") == "wireguard"]
+        elif server_type == "OpenVPN":
+            selected_relays = [relay for relay in selected_relays if relay.get("type") == "openvpn"]
+
+        if not selected_relays:
+            messagebox.showerror("Error", f"No servers found for {country_name} - {city_name} with type {server_type}.")
+            stop_animation.set()
+            return
+
+        # Dictionary to track server latencies
+        server_latencies = {}
+
+        output_text.insert(tk.END, f"Starting {num_pings} ping iterations for each server...\n")
+
+        # Run ping for each server and gather latencies
+        for relay in selected_relays:
+            hostname = relay.get("hostname", "Unknown")
+            ipv4_addr = relay.get("ipv4_addr_in", "N/A")
+            output_text.insert(tk.END, f"\nPinging {hostname} ({ipv4_addr})...\n")
+            output_text.update_idletasks()  # Ensure UI updates
+
+            _, avg_latency, _ = ping(ipv4_addr, count=num_pings, timeout=timeout)
+
+            # Display ping result in the console
+            if avg_latency is not None:
+                output_text.insert(tk.END, f"Ping {hostname}: {avg_latency:.2f} ms\n")
+                server_latencies[hostname] = avg_latency
+            else:
+                output_text.insert(tk.END, f"Ping {hostname}: No response\n")
 
         stop_animation.set()
 
-        # Display error messages if any
-        stderr = process.stderr.read()
-        process.stderr.close()
-        if stderr:
-            messagebox.showerror("Error", stderr)
+        if server_latencies:
+            # Find the server with the lowest latency
+            best_server = min(server_latencies, key=server_latencies.get)
+            average_latency = server_latencies[best_server]
+
+            # Format and display the final message
+            final_message = "\n" + "#" * 60 + "\n"
+            final_message += "#{:^58}#\n".format("Best Server Based on Average Latency")
+            final_message += "#{:^58}#\n".format(f"Server: {best_server}")
+            final_message += "#{:^58}#\n".format(f"Average Latency: {average_latency:.3f} ms")
+            final_message += "#" * 60 + "\n"
+            final_message += "\nDONE!\n"
+            output_text.insert(tk.END, final_message)
+            output_text.see(tk.END)
+        else:
+            output_text.insert(tk.END, "\nNo server latency information found.\n")
+
     except Exception as e:
         messagebox.showerror("Error", str(e))
     finally:
         stop_animation.set()
-
-# Loading animation function
-def loading_animation():
-    while not stop_animation.is_set():
-        loading_label.config(text="Loading." if loading_label.cget("text") == "Loading..." else loading_label.cget("text") + ".")
-        time.sleep(0.5)
-    loading_label.config(text="")  # End animation
 
 # Create main GUI window
 root = tk.Tk()
@@ -169,10 +193,9 @@ frame_closest = ttk.Frame(notebook)
 notebook.add(frame_closest, text="Closest Server")
 
 # Initialize dropdown variables and checkboxes
-country_var = tk.StringVar()
+country_var = tk.StringVar(value="Please select")  # Initialize with "Please select"
 city_var = tk.StringVar()
-wireguard_var = tk.BooleanVar(value=False)  # Set default value to False
-openvpn_var = tk.BooleanVar(value=False)  # Set default value to False
+server_type_var = tk.StringVar(value="WireGuard")  # Default to WireGuard
 
 # Load current relays
 relays, countries, cities_by_country = load_dynamic_relays()
@@ -183,19 +206,18 @@ if not relays:
 # --- Main Tab ---
 # Dropdown menus for country and city selection
 ttk.Label(frame_main, text="Select Country:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
-country_dropdown = ttk.Combobox(frame_main, textvariable=country_var, values=list(countries), state="readonly")
+country_dropdown = ttk.Combobox(frame_main, textvariable=country_var, values=["Please select"] + list(countries), state="readonly")
 country_dropdown.grid(row=0, column=1, padx=5, pady=5)
 country_dropdown.bind("<<ComboboxSelected>>", update_city_dropdown)  # Bind event to update cities
 
 ttk.Label(frame_main, text="Select City:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
-city_dropdown = ttk.Combobox(frame_main, textvariable=city_var, values=[], state="readonly")  # Empty values until a country is selected
+city_dropdown = ttk.Combobox(frame_main, textvariable=city_var, values=[], state="disabled")  # Empty values and disabled until a country is selected
 city_dropdown.grid(row=1, column=1, padx=5, pady=5)
 
-# Checkboxes for WireGuard and OpenVPN
-wireguard_checkbox = ttk.Checkbutton(frame_main, text="WireGuard", variable=wireguard_var)
-wireguard_checkbox.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-openvpn_checkbox = ttk.Checkbutton(frame_main, text="OpenVPN", variable=openvpn_var)
-openvpn_checkbox.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+# Dropdown for Server Type
+ttk.Label(frame_main, text="Server Type:").grid(row=2, column=0, sticky="e", padx=5, pady=5)
+server_type_dropdown = ttk.Combobox(frame_main, textvariable=server_type_var, values=["WireGuard", "OpenVPN"], state="readonly")
+server_type_dropdown.grid(row=2, column=1, padx=5, pady=5)
 
 # Input fields for number of pings and timeout
 ttk.Label(frame_main, text="Number of Pings:").grid(row=3, column=0, sticky="e", padx=5, pady=5)
@@ -216,9 +238,6 @@ output_text.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
 scrollbar = ttk.Scrollbar(frame_main, orient="vertical", command=output_text.yview)
 scrollbar.grid(row=5, column=2, sticky="ns")
 output_text["yscrollcommand"] = scrollbar.set
-
-# Loading animation label
-loading_label = ttk.Label(frame_main, text="")
 
 # Start button for the main tab
 start_button = ttk.Button(frame_main, text="Start", command=run_mulping_thread)
