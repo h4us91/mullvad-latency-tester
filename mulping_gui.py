@@ -104,6 +104,7 @@ def run_mulping():
         server_type = server_type_var.get()  # Get the selected server type
         num_pings = int(num_pings_entry.get())  # Ensure num_pings is an integer
         timeout = int(timeout_entry.get())  # Ensure timeout is an integer
+        provider_filter = provider_var.get()
         min_bandwidth = int(min_bandwidth_var.get())  # Get minimum bandwidth value
 
         if not country_name or country_name == "Please select" or not city_name:
@@ -129,6 +130,7 @@ def run_mulping():
             selected_relays = [relay for relay in selected_relays if relay.get("type") == "openvpn"]
 
         # Filter by provider if a specific provider is selected
+        if provider_filter != "All Providers":
             selected_relays = [relay for relay in selected_relays if relay.get(PROVIDER) == provider_filter]
 
         # Filter by minimum bandwidth
@@ -250,6 +252,10 @@ provider_dropdown = ttk.Combobox(frame_main, textvariable=provider_var, values=[
 provider_dropdown.grid(row=6, column=1, padx=5, pady=5)
 
 # Minimum Bandwidth entry
+min_bandwidth_var = tk.StringVar(value="0")  # Default to 0 (no bandwidth filter)
+ttk.Label(frame_main, text="Min. Bandwidth (Mbps):").grid(row=7, column=0, sticky="e", padx=5, pady=5)
+min_bandwidth_entry = ttk.Entry(frame_main, textvariable=min_bandwidth_var)
+min_bandwidth_entry.grid(row=7, column=1, padx=5, pady=5)
 
 # Output text field for main tab
 output_text = tk.Text(frame_main, wrap=tk.WORD, height=15, width=50)
