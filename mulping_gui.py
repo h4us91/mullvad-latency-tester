@@ -5,7 +5,7 @@ import subprocess
 import time
 import json
 import server_distance  # Import server_distance for the new feature
-from mulping import getRelays, COUNTRY_NAME, CITY_NAME, COUNTRY_CODE, CITY_CODE, ping  # Import necessary functions and variables
+from mulping import getRelays, COUNTRY_NAME, CITY_NAME, COUNTRY_CODE, CITY_CODE, PROVIDER, BANDWIDTH, IPV4, IPV6, TYPE, WIREGUARD, OPENVPN, ping  # Import necessary functions and variables
 
 # Function to load relays and sort countries alphabetically
 def load_dynamic_relays():
@@ -96,6 +96,7 @@ def find_closest_servers():
 
     threading.Thread(target=display_closest_servers).start()
 
+# Update the run_mulping function to include the new filters
 def run_mulping():
     try:
         country_name = country_var.get()
@@ -103,6 +104,7 @@ def run_mulping():
         server_type = server_type_var.get()  # Get the selected server type
         num_pings = int(num_pings_entry.get())  # Ensure num_pings is an integer
         timeout = int(timeout_entry.get())  # Ensure timeout is an integer
+        min_bandwidth = int(min_bandwidth_var.get())  # Get minimum bandwidth value
 
         if not country_name or country_name == "Please select" or not city_name:
             messagebox.showerror("Error", "Please select a country and a city.")
@@ -126,8 +128,14 @@ def run_mulping():
         elif server_type == "OpenVPN":
             selected_relays = [relay for relay in selected_relays if relay.get("type") == "openvpn"]
 
+        # Filter by provider if a specific provider is selected
+            selected_relays = [relay for relay in selected_relays if relay.get(PROVIDER) == provider_filter]
+
+        # Filter by minimum bandwidth
+        selected_relays = [relay for relay in selected_relays if relay.get(BANDWIDTH, 0) >= min_bandwidth]
+
         if not selected_relays:
-            messagebox.showerror("Error", f"No servers found for {country_name} - {city_name} with type {server_type}.")
+            messagebox.showerror("Error", f"No servers found for {country_name} - {city_name} with type {server_type}, provider {provider_filter}, and minimum bandwidth {min_bandwidth} Mbps.")
             stop_animation.set()
             return
 
@@ -136,15 +144,14 @@ def run_mulping():
 
         output_text.insert(tk.END, f"Starting {num_pings} ping iterations for each server...\n")
         output_text.see(tk.END)  # Auto-scroll
-        output_text.update_idletasks()  # Ensure UI updates
 
         # Run ping for each server and gather latencies
         for relay in selected_relays:
             hostname = relay.get("hostname", "Unknown")
             ipv4_addr = relay.get("ipv4_addr_in", "N/A")
             output_text.insert(tk.END, f"\nPinging {hostname} ({ipv4_addr})...\n")
+
             output_text.see(tk.END)  # Auto-scroll
-            output_text.update_idletasks()  # Ensure UI updates
 
             _, avg_latency, _ = ping(ipv4_addr, count=num_pings, timeout=timeout)
 
@@ -155,7 +162,6 @@ def run_mulping():
             else:
                 output_text.insert(tk.END, f"Ping {hostname}: No response\n")
             output_text.see(tk.END)  # Auto-scroll
-            output_text.update_idletasks()  # Ensure UI updates
 
         stop_animation.set()
 
@@ -236,18 +242,27 @@ timeout_entry = ttk.Entry(frame_main)
 timeout_entry.insert(0, "5")
 timeout_entry.grid(row=4, column=1, padx=5, pady=5)
 
+# Provider dropdown
+providers = sorted({relay[PROVIDER] for relay in relays})
+provider_var = tk.StringVar(value="All Providers")
+ttk.Label(frame_main, text="Provider:").grid(row=6, column=0, sticky="e", padx=5, pady=5)
+provider_dropdown = ttk.Combobox(frame_main, textvariable=provider_var, values=["All Providers"] + list(providers), state="readonly")
+provider_dropdown.grid(row=6, column=1, padx=5, pady=5)
+
+# Minimum Bandwidth entry
+
 # Output text field for main tab
 output_text = tk.Text(frame_main, wrap=tk.WORD, height=15, width=50)
-output_text.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
+output_text.grid(row=8, column=0, columnspan=2, padx=5, pady=5)
 
 # Scrollbar for the text field in the main tab
 scrollbar = ttk.Scrollbar(frame_main, orient="vertical", command=output_text.yview)
-scrollbar.grid(row=5, column=2, sticky="ns")
+scrollbar.grid(row=8, column=2, sticky="ns")
 output_text["yscrollcommand"] = scrollbar.set
 
 # Start button for the main tab
 start_button = ttk.Button(frame_main, text="Start", command=run_mulping_thread)
-start_button.grid(row=7, column=0, columnspan=2, pady=10)
+start_button.grid(row=9, column=0, columnspan=2, pady=10)
 
 # --- Closest Server Tab ---
 # Output text area for displaying results in the closest server tab
