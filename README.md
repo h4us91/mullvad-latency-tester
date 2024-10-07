@@ -16,7 +16,7 @@ This project provides a GUI tool to measure the latency of Mullvad VPN servers. 
 
 ### Find Closest Servers Tab
 - Automatically identifies your current location and calculates the distance to various Mullvad VPN servers.
-- Displays the closest servers based on distance and latency.
+- Lists the top 10 best servers based on geographical proximity and network latency.
 
 ### Server Coordinate Updates
 - Uses OpenStreetMap to fetch and update the geographic coordinates of servers as needed.
