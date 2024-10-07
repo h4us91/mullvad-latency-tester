@@ -1,7 +1,10 @@
 # Mullvad Latency Tester
 
-<img src="assets/gui_screenshot1.png" alt="Mullvad Latency Tester Tab 1" width="400"/>
-<img src="assets/gui_screenshot2.png" alt="Mullvad Latency Tester Tab 2" width="400"/>
+<div style="display: flex; justify-content: space-between;">
+    <img src="assets/gui_screenshot1.png" alt="Mullvad Latency Tester Tab 1" width="400"/>
+    <img src="assets/gui_screenshot2.png" alt="Mullvad Latency Tester Tab 2" width="400"/>
+</div>
+
 
 This project provides a GUI tool to measure the latency of Mullvad VPN servers. It allows users to quickly find the best server based on geographic proximity and latency.
 
