@@ -1,0 +1,41 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore temporary files
+*.tmp
+*.log
+*.bak
+*.swp
+
+# Ignore macOS files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+desktop.ini
+
+# Ignore virtual environment directories
+env/
+venv/
+ENV/
+.venv/
+
+# Ignore build directories and executables
+build/
+dist/
+*.spec
+
+# Ignore generated executables and installer files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore PyInstaller directories and logs
+*.manifest
+*.exe.manifest
+*.exe.idb
+*.pdb
+

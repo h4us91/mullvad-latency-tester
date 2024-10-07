@@ -14,13 +14,7 @@ This project provides a GUI tool to measure the latency of Mullvad VPN servers. 
 
 ### Server Coordinate Updates
 - Uses OpenStreetMap to fetch and update the geographic coordinates of servers as needed.
-- Stores and retrieves coordinates locally to optimize future searches.
 
+## Download
 
-## Installation
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/your-username/mullvad-latency-tester.git
-   cd mullvad-latency-tester
+You can download the latest version of the executable from the [Releases](https://github.com/h4us91/mullvad-latency-tester/releases) section.
