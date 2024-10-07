@@ -39,3 +39,22 @@ dist/
 *.exe.idb
 *.pdb
 
+# Ignore system-specific or IDE-specific folders
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore Git temporary and conflict files
+*.orig
+*.rej
+*~ 
+
+# Ignore project-specific compiled or temporary files
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Ignore global JetBrains settings and workspace files
+*.iml
+.idea/
